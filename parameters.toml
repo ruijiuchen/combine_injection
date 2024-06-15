@@ -1,10 +1,8 @@
-mode = "combine_tdms"
+mode = "get_full_spec"
 
 [parameters]
-file_dir = "/lustre/astrum/experiment_data/2024-05_E018/OnlineDataAnalysisSystem/data/iq/IQ_2024-06-12_21-47-54"
-file_start = "23"
-file_stop = "23"
-average_number = "64"
-fre_min = "243730000"
-fre_range = "100000"
-date_start = "2024-06-12 21:47:54"
+injection_list_path = "/data.local/G22-00018_00203/results/ntcap/injection/injection_list.txt"
+base_path = "/data.local/G22-00018_00203/results/ntcap/injection"
+max_workers = "10"
+frameID_offset = "20"
+frameID_range = "50"
