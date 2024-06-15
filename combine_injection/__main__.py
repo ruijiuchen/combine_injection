@@ -8,7 +8,7 @@ import paramiko
 import sys
 import glob
 import datetime
-from ROOT import TFile, TCanvas, TH2F, TDatime
+from ROOT import TFile, TCanvas, TH2F, TDatime, gApplication, gStyle, gPad
 import numpy as np
 import re
 import concurrent.futures
@@ -596,15 +596,58 @@ def combine_tdms(file_dir, file_start, file_stop, average_number, fre_min, fre_r
     # Set time display format for X-axis
     h_spec_filtered.GetXaxis().SetTimeDisplay(1)
     h_spec_filtered.GetXaxis().SetTimeFormat("%Y-%m-%d %H:%M:%S")
-    h_spec_filtered.GetXaxis().SetLabelSize(0.03)
-                    
+    h_spec_filtered.GetXaxis().SetLabelSize(0.05)
+    h_spec_filtered.GetXaxis().SetTitleSize(0.05)
+    h_spec_filtered.GetXaxis().SetTitle("Date")
+    h_spec_filtered.GetXaxis().SetNdivisions(505)
+    h_spec_filtered.GetYaxis().SetTitle("Frequency [Hz]")
+    h_spec_filtered.GetYaxis().SetLabelSize(0.05)
+    h_spec_filtered.GetYaxis().SetTitleSize(0.05)
+                            
     # Save the histogram to a ROOT file
     output_root_file = f"{file_dir}/filtered_spectrum_{file_start}_{file_stop}.root"
     root_file = TFile(output_root_file, "RECREATE")
     h_spec_filtered.Write()
     root_file.Close()
     print(f"Histogram saved in {output_root_file}.")
-            
+
+    # Create a canvas and draw the histogram
+    c1 = TCanvas("c1", "Filtered Spectrum", 1200, 600)
+    c1.Divide(1, 2)
+    # Adjust margins
+    c1.cd(1).SetTopMargin(0.0)
+    c1.cd(1).SetRightMargin(0.0)
+    c1.cd(2).SetTopMargin(0.0)
+    c1.cd(2).SetRightMargin(0.0)
+    
+    # Draw the 2D histogram
+    c1.cd(1)
+    gStyle.SetOptTitle(0)
+    gStyle.SetOptStat(0)
+    gPad.SetLogz()    
+    h_spec_filtered.Draw("COLZ")
+    
+    # Draw the projection on the x-axis
+    c1.cd(2)
+    gStyle.SetOptTitle(0)
+    gStyle.SetOptStat(0)
+    gPad.SetLogy()
+    h_proj_time = h_spec_filtered.ProjectionX()
+    h_proj_time.SetTitle("Projection on Time Axis;Date;Amplitude Sum")
+    h_proj_time.GetXaxis().SetTimeDisplay(1)
+    h_proj_time.GetXaxis().SetTimeFormat("%Y-%m-%d %H:%M:%S")
+    h_proj_time.GetXaxis().SetLabelSize(0.05)
+    h_proj_time.GetXaxis().SetTitleSize(0.05)
+    h_proj_time.GetXaxis().SetNdivisions(505)
+    h_proj_time.GetYaxis().SetLabelSize(0.05)
+    h_proj_time.GetYaxis().SetTitleSize(0.05)
+    h_proj_time.GetYaxis().SetNdivisions(505)
+    h_proj_time.Draw()
+    # Show the canvas
+    c1.Update()
+    c1.Draw()
+    gApplication.Run()  # Keep the canvas open for further editing
+    
 def process_injections_concurrently(injection_list_path, injections, base_path, process_injection_func, max_workers, frameID_offset, frameID_range):
     """
     Processes a list of injections concurrently using multiple processes.
@@ -647,6 +690,8 @@ def main():
         print("       combine_injection combine_tdms <file_dir> <file_start> <file_stop> <average_number> <fre_min> <fre_range> <date_start>")
         print("       e.g. combine_injection combine_tdms /lustre/astrum/experiment_data/2024-05_E018/OnlineDataAnalysisSystem/data/iq/IQ_2024-06-12_21-47-54 23 24 64 243730000 100000 \"2024-06-12 21:47:54\" ")
         print("Usage-4:")
+        print("        combine_injection convert_npz <*******.iq.tdms.bin_fre> <*******.iq.tdms.bin_time> <*******.iq.tdms.bin_amp>")
+        print("Usage-5:")
         print("       combine_injection <parameters.toml>")
         sys.exit(1)
         
