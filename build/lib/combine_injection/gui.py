@@ -8,13 +8,17 @@ import paramiko
 import sys
 import glob
 import datetime
-from ROOT import TFile, TCanvas, TH2F, TDatime
+from ROOT import TFile, TCanvas, TH2F, TDatime, gApplication, gStyle, gPad
 import numpy as np
 import re
 import concurrent.futures
 import time
 from iqtools import *
 from datetime import datetime
+import toml
+from PyQt5.QtWidgets import (QApplication, QWidget, QLabel, QLineEdit, QPushButton,
+                             QVBoxLayout, QHBoxLayout, QMessageBox, QComboBox, QFormLayout)
+from PyQt5.QtCore import QThread, pyqtSignal
 def filter_files_by_time(directory, prefix, extension, start_time_str, end_time_str, time_format="%Y_%m_%d_%H_%M_%S"):
     """
     Filters ROOT files in a directory by a time range specified in their filenames.
@@ -143,57 +147,10 @@ def read_fft_injection_from_files(filtered_files, extension,dtime):
                     FFT_accumulated.Add(FFT_injection)
     
             f.Close()
-    # Draw FFT_accumulated if it exists
-    #if FFT_accumulated:
-    #    # Create a canvas to draw the histogram
-    #    canvas = TCanvas("canvas", "Accumulated FFT Injection", 550, 650)
-    #    canvas.SetLeftMargin(0.13)
-    #    canvas.SetRightMargin(0.17)
-    #    canvas.SetTopMargin(0.1)
-    #    canvas.SetBottomMargin(0.1)
-    #    canvas.SetLogz(1)
-    #    FFT_accumulated.SetTitle("Accumulated spectrum.")
-    #    FFT_accumulated.Draw("COLZ")  # Draw the histogram with color palette
-    #    if extension == "*.tiq":
-    #        FFT_accumulated.SetXTitle("Frequency [Hz] -245 MHz");
-    #    else:
-    #        FFT_accumulated.SetXTitle("Frequency [kHz] -245 MHz");
-    #    FFT_accumulated.GetXaxis().CenterTitle(1);
-    #    FFT_accumulated.GetXaxis().SetLabelFont(42);
-    #    FFT_accumulated.GetXaxis().SetLabelSize(0.035);
-    #    FFT_accumulated.GetXaxis().SetTitleSize(0.035);
-    #    FFT_accumulated.GetXaxis().SetTitleFont(42);
-    #    FFT_accumulated.GetXaxis().SetTitleOffset(1.1);
-    #    FFT_accumulated.GetXaxis().SetNdivisions(505);
-    #    FFT_accumulated.SetYTitle("Time [s]");
-    #    FFT_accumulated.GetYaxis().CenterTitle(1);
-    #    FFT_accumulated.GetYaxis().SetLabelFont(42);
-    #    FFT_accumulated.GetYaxis().SetLabelSize(0.035);
-    #    FFT_accumulated.GetYaxis().SetTitleSize(0.035);
-    #    FFT_accumulated.GetYaxis().SetTitleFont(42);
-    #    FFT_accumulated.GetYaxis().SetTitleOffset(1.5);
-    #    FFT_accumulated.GetYaxis().SetNdivisions(510);
-    #    FFT_accumulated.SetZTitle("Power I^{2} + Q^{2} [a.u.]");
-    #    FFT_accumulated.GetZaxis().SetLabelFont(42);
-    #    FFT_accumulated.GetZaxis().SetLabelSize(0.035);
-    #    FFT_accumulated.GetZaxis().SetTitleSize(0.035);
-    #    FFT_accumulated.GetZaxis().SetTitleFont(42);
-    #    FFT_accumulated.GetZaxis().SetTitleOffset(1.7);
-    #    FFT_accumulated.SetStats(0);
-    #    
-    #    
-    #    canvas.Update()  # Ensure the canvas is updated with the drawn histogram
-    #    # Optionally, you can wait for user input to keep the canvas open
-    #    # Save the FFT_accumulated histogram to a ROOT file
     
     output_file = TFile("combine_injection.root", "RECREATE")
-    #    canvas.Write()
     FFT_accumulated.Write()
     output_file.Close()
-    #    input("Press Enter to continue...")
-    #    
-        # If you want the script to automatically close, remove the input line above
-        # and perhaps use canvas.SaveAs("FFT_accumulated.png") to save the result
         
     return FFT_accumulated
 def read_injection_list(file_path):
@@ -546,6 +503,7 @@ def convert_to_time_offset(date_start):
     
     return time_offset
 
+            
 def combine_tdms(file_dir, file_start, file_stop, average_number, fre_min, fre_range,  date_start):
     # Initialize lists to accumulate the filtered data
     accumulated_fre = []
@@ -564,11 +522,10 @@ def combine_tdms(file_dir, file_start, file_stop, average_number, fre_min, fre_r
     fre_filtered = None
     for file_index in range(file_start, file_stop + 1):
         print("Processing file: ", file_index)
-        file_name_prefix = f"{file_index:07d}.iq.tdms"
+        file_name_prefix = f"{file_dir}/{file_index:07d}.iq.tdms"
         bin_time_path    = f"{file_name_prefix}.bin_time"
         bin_fre_path     = f"{file_name_prefix}.bin_fre"
         bin_amp_path     = f"{file_name_prefix}.bin_amp"
-        
         try:
             if i ==0:
                 fre  = np.fromfile(bin_fre_path, dtype=np.float64)
@@ -576,9 +533,6 @@ def combine_tdms(file_dir, file_start, file_stop, average_number, fre_min, fre_r
                 
             amp  = np.fromfile(bin_amp_path, dtype=np.float32)
             
-            # Ensure amp is reshaped correctly
-            #if amp.size % fre.size != 0:
-            #    raise ValueError("The size of amp is not a multiple of the size of fre, cannot reshape amp.")
             # Ensure amp is reshaped correctly
             if amp.size % fre.size != 0 or amp.size != fre.size * time.size:
                 raise ValueError("The size of amp is not correct, indicating data loss. Filling amp with 1e-2.")
@@ -629,8 +583,8 @@ def combine_tdms(file_dir, file_start, file_stop, average_number, fre_min, fre_r
         
     combined_time = np.mean(total_time.reshape(-1, average_number), axis=1)
     
-    print("saving data into npz file.")
-    bin_npz_path  = f"filtered_spectrum_{file_start}_{file_stop}.npz"
+    bin_npz_path  = f"{file_dir}/filtered_spectrum_{file_start}_{file_stop}.npz"
+    print(f"saving data into {bin_npz_path} file.")
     np.savez_compressed(bin_npz_path, arr_0=total_fre, arr_1=combined_time, arr_2=combined_amp)
     
     # Create a 2D histogram
@@ -646,129 +600,222 @@ def combine_tdms(file_dir, file_start, file_stop, average_number, fre_min, fre_r
     # Set time display format for X-axis
     h_spec_filtered.GetXaxis().SetTimeDisplay(1)
     h_spec_filtered.GetXaxis().SetTimeFormat("%Y-%m-%d %H:%M:%S")
-    h_spec_filtered.GetXaxis().SetLabelSize(0.03)
-                    
+    h_spec_filtered.GetXaxis().SetLabelSize(0.05)
+    h_spec_filtered.GetXaxis().SetTitleSize(0.05)
+    h_spec_filtered.GetXaxis().SetTitle("Date")
+    h_spec_filtered.GetXaxis().SetNdivisions(505)
+    h_spec_filtered.GetYaxis().SetTitle("Frequency [Hz]")
+    h_spec_filtered.GetYaxis().SetLabelSize(0.05)
+    h_spec_filtered.GetYaxis().SetTitleSize(0.05)
+                            
     # Save the histogram to a ROOT file
-    output_root_file = f"filtered_spectrum_{file_start}_{file_stop}.root"
+    output_root_file = f"{file_dir}/filtered_spectrum_{file_start}_{file_stop}.root"
     root_file = TFile(output_root_file, "RECREATE")
     h_spec_filtered.Write()
     root_file.Close()
-    print(f"Histogram saved in {output_root_file}")
-            
-def process_injections_concurrently(injection_list_path, injections, base_path, process_injection_func, max_workers, frameID_offset, frameID_range):
-    """
-    Processes a list of injections concurrently using multiple processes.
-    
-    Parameters:
-    - injections: A list of injection data to process.
-    - process_injection_func: The function that will process each injection.
-    - max_workers: The maximum number of worker processes to use (default is 4).
-    
-    The `process_injection_func` function should accept a single argument representing one item of `injections`.
-    """
-    with concurrent.futures.ProcessPoolExecutor(max_workers=max_workers) as executor:
-        # Submit all injection processing tasks to the executor
-        #print("chenrj ...", injections)
-        futures = [executor.submit(process_injection_func, injection_list_path, injection_data, base_path, frameID_offset, frameID_range) for injection_data in injections]
-        
-        try:
-            # Wait for all submitted tasks to complete
-            for future in concurrent.futures.as_completed(futures):
-                # Handle exceptions or results here if needed
-                try:
-                    future.result()
-                except Exception as exc:
-                    print(f"Generated an exception: {exc}")
-        except KeyboardInterrupt:
-            print("Caught KeyboardInterrupt, terminating workers.")
-            executor.shutdown(wait=False)
-            # Perform any additional cleanup here if necessary
-                    
-def main():
-    if len(sys.argv) < 3:
-        print("Usage-1:")
-        print("       combine_injection get_full_spec <injection_list_path> <base_path> <max_workers>  <frameID_offset> <frameID_range>")
-        print("       e.g.   combine_injection get_full_spec injection_list.txt /lustre/astrum/experiment_data/2024-05_E018/OnlineDataAnalysisSystem/data 1 10 50")
-        print("Usage-2:")
-        print("       combine_injection accumulate <path_to_files> <prefix> <extension> <start_time> <end_time> <nframes> <lframes>")
-        print("       e.g. combine_injection accumulate /lustre/astrum/experiment_data/2024-05_E018/OnlineDataAnalysisSystem/data/injection 'NTCAP_' '*_full.root' 2021_05_08_21_18_00 2021_05_08_21_19_00 0 0")
-        print("       e.g. combine_injection accumulate /lustre/astrum/experiment_data/2024-05_E018/OnlineDataAnalysisSystem/combine_injection/data 'E143-245MHz-' '*.tiq' 2021.05.08.20.18.00.00 2021.05.08.21.19.00.00 200 1024")
-        
-        print("Usage - 3: combine_injection  combine_tdms <file_dir> <file_start> <file_stop> <average_number> <fre_min> <fre_range>  <date_start>")
-        print("       e.g. combine_injection  combine_tdms /lustre/astrum/experiment_data/2024-05_E018/OnlineDataAnalysisSystem/data/iq/IQ_2024-06-12_21-47-54 23 24 64 243730000 100000 \"2024-06-12 21:47:54\" ")
+    print(f"Histogram saved in {output_root_file}.")
 
-        sys.exit(1)
-        
-    mode = sys.argv[1]
+    # Create a canvas and draw the histogram
+    c1 = TCanvas("c1", "Filtered Spectrum", 1200, 600)
+    c1.Divide(1, 2)
+    # Adjust margins
+    c1.cd(1).SetTopMargin(0.0)
+    c1.cd(1).SetRightMargin(0.0)
+    c1.cd(2).SetTopMargin(0.0)
+    c1.cd(2).SetRightMargin(0.0)
     
-    if mode == "accumulate":
-        if len(sys.argv) != 8:
-            print("Usage: combine_injection accumulate <path_to_files> <prefix> <extension> <start_time> <end_time> <dtime>")
-            print("       e.g. combine_injection accumulate /lustre/astrum/experiment_data/2024-05_E018/OnlineDataAnalysisSystem/data/injection 'NTCAP_' *_full.root 2021_05_08_21_18_00 2021_05_08_21_19_00")
-            print("       e.g. combine_injection accumulate /lustre/astrum/experiment_data/2024-05_E018/OnlineDataAnalysisSystem/combine_injection/data 'E143-245MHz-' '*.tiq' 2021.05.08.20.18.00.00 2021.05.08.21.19.00.00 0.001")
-            sys.exit(1)
+    # Draw the 2D histogram
+    c1.cd(1)
+    gStyle.SetOptTitle(0)
+    gStyle.SetOptStat(0)
+    gPad.SetLogz()
+    h_spec_filtered.Draw("COLZ")
+    
+    # Draw the projection on the x-axis
+    c1.cd(2)
+    gStyle.SetOptTitle(0)
+    gStyle.SetOptStat(0)
+    gPad.SetLogy()
+    h_proj_time = h_spec_filtered.ProjectionX()
+    h_proj_time.SetTitle("Projection on Time Axis;Date;Amplitude Sum")
+    h_proj_time.GetXaxis().SetTimeDisplay(1)
+    h_proj_time.GetXaxis().SetTimeFormat("%Y-%m-%d %H:%M:%S")
+    h_proj_time.GetXaxis().SetLabelSize(0.05)
+    h_proj_time.GetXaxis().SetTitleSize(0.05)
+    h_proj_time.GetXaxis().SetNdivisions(505)
+    h_proj_time.GetYaxis().SetLabelSize(0.05)
+    h_proj_time.GetYaxis().SetTitleSize(0.05)
+    h_proj_time.GetYaxis().SetNdivisions(505)
+    h_proj_time.Draw()
+    # Show the canvas
+    c1.Update()
+    c1.Draw()
+    gApplication.Run(True)  # Keep the canvas open for further editing
+    
+class CombineInjectionGUI(QWidget):
+    def __init__(self):
+        super().__init__()
+        
+        self.config_file = "parameters.toml"
+        self.initUI()
+        self.load_parameters()
+        
+    def initUI(self):
+        self.setWindowTitle('Combine Injection GUI')
+        self.setGeometry(100, 100, 600, 400)
+        
+        self.layout = QVBoxLayout()
+    
+        # Mode selection
+        self.mode_label = QLabel("Mode:")
+        self.mode_combo = QComboBox()
+        self.mode_combo.addItems(["accumulate", "get_full_spec", "convert_npz", "combine_tdms"])
+        self.mode_combo.currentIndexChanged.connect(self.update_ui_for_mode)
+        self.layout.addWidget(self.mode_label)
+        self.layout.addWidget(self.mode_combo)
+        
+        # Parameters layout
+        self.param_layout = QFormLayout()
+        self.layout.addLayout(self.param_layout)
+        
+        self.start_button = QPushButton("Start", self)
+        self.start_button.clicked.connect(self.start_program)
+        self.layout.addWidget(self.start_button)
+        
+        self.setLayout(self.layout)
+        self.update_ui_for_mode()
+        
+    def update_ui_for_mode(self):
+        print("Updating UI for mode:", self.mode_combo.currentText())
+        # Clear previous parameters
+        count = self.param_layout.count()
+        print(f"Parameter layout count before clearing: {count}")
+        while count > 0:
+            child = self.param_layout.takeAt(0)
+            if child is not None:
+                widget = child.widget()
+                if widget is not None:
+                    print("Removing widget:", widget.objectName())
+                    widget.setParent(None)
+                    widget.deleteLater()
+            count -= 1
+                
+        count_after = self.param_layout.count()
+        print(f"Parameter layout count after clearing: {count_after}")
+        
+        mode = self.mode_combo.currentText()
+        self.param_entries = []
+        
+        if mode == "accumulate":
+            self.create_param_entry("path_to_files")
+            self.create_param_entry("prefix")
+            self.create_param_entry("extension")
+            self.create_param_entry("start_time")
+            self.create_param_entry("end_time")
+            self.create_param_entry("dtime")
+        elif mode == "get_full_spec":
+            self.create_param_entry("injection_list_path")
+            self.create_param_entry("base_path")
+            self.create_param_entry("max_workers")
+            self.create_param_entry("frameID_offset")
+            self.create_param_entry("frameID_range")
+        elif mode == "convert_npz":
+            self.create_param_entry("bin_fre_path")
+            self.create_param_entry("bin_time_path")
+            self.create_param_entry("bin_amp_path")
+        elif mode == "combine_tdms":
+            self.create_param_entry("file_dir")
+            self.create_param_entry("file_start")
+            self.create_param_entry("file_stop")
+            self.create_param_entry("average_number")
+            self.create_param_entry("fre_min")
+            self.create_param_entry("fre_range")
+            self.create_param_entry("date_start")
+        
+    def create_param_entry(self, param_name):
+        label = QLabel(f"{param_name}:")
+        entry = QLineEdit(self)
+        entry.setObjectName(param_name)
+        self.param_entries.append((param_name, entry))
+        self.param_layout.addRow(label, entry)
+        print(f"Created entry for {param_name}")
+        
+    def load_parameters(self):
+        if os.path.exists(self.config_file):
+            with open(self.config_file, 'r') as file:
+                config = toml.load(file)
+                mode = config.get("mode", "accumulate")
+                self.mode_combo.setCurrentText(mode)
+                params = config.get("parameters", {})
+                for param_name, entry in self.param_entries:
+                    entry.setText(params.get(param_name, ""))
+                        
+    def save_parameters(self):
+        params = {param_name: entry.text() for param_name, entry in self.param_entries}
+        config = {"mode": self.mode_combo.currentText(), "parameters": params}
+        with open(self.config_file, 'w') as file:
+            toml.dump(config, file)
+                
+    def start_program(self):
+        self.save_parameters()
+        params = {param_name: entry.text() for param_name, entry in self.param_entries}
+        mode = self.mode_combo.currentText()
+        
+        if mode == "accumulate":
+            path_to_files = params["path_to_files"]
+            prefix = params["prefix"]
+            extension = params["extension"]
+            start_time = params["start_time"]
+            end_time = params["end_time"]
+            dtime = float(params["dtime"])
+            filtered_files = filter_files_by_time(path_to_files, prefix, extension, start_time, end_time, "%Y.%m.%d.%H.%M.%S.%f")
+            read_fft_injection_from_files(filtered_files, extension, dtime)
+        elif mode == "get_full_spec":
+            injection_list_path = params["injection_list_path"]
+            base_path = params["base_path"]
+            max_workers = int(params["max_workers"])
+            frameID_offset = int(params["frameID_offset"])
+            frameID_range = int(params["frameID_range"])
+            injections = read_injection_list(injection_list_path)
+            process_injections_concurrently(injection_list_path, injections, base_path, process_injection, max_workers, frameID_offset, frameID_range)
+        elif mode == "convert_npz":
+            bin_fre_path = params["bin_fre_path"]
+            bin_time_path = params["bin_time_path"]
+            bin_amp_path = params["bin_amp_path"]
+            start_time = time.time()
+            bin_npz_path = bin_fre_path.replace(".bin_fre", ".npz")
+            fre = np.fromfile(bin_fre_path, dtype=np.float64)
+            time_data = np.fromfile(bin_time_path, dtype=np.float32)
+            amp = np.fromfile(bin_amp_path, dtype=np.float32)
+            print("saving data into npz file.")
+            np.savez_compressed(bin_npz_path, fre=fre, time=time_data, amp=amp)
+            print(f"Data saved to {bin_npz_path}")
+            end_time = time.time()
+            used_time = end_time - start_time
+            print(f"Time used: {used_time} seconds")
+        elif mode == "combine_tdms":
+            file_dir = params["file_dir"]
+            file_start = int(params["file_start"])
+            file_stop = int(params["file_stop"])
+            average_number = int(params["average_number"])
+            fre_min = float(params["fre_min"])
+            fre_range = float(params["fre_range"])
+            date_start = params["date_start"]
+            combine_tdms(file_dir, file_start, file_stop, average_number, fre_min, fre_range, date_start)
             
-        path_to_files = sys.argv[2]
-        prefix = sys.argv[3]
-        extension = sys.argv[4]
-        start_time = sys.argv[5]
-        end_time = sys.argv[6]
-        dtime  = float(sys.argv[7])
-        #nframes = int(sys.argv[7])
-        #lframes = int(sys.argv[8])
-        filtered_files = filter_files_by_time(path_to_files, prefix, extension, start_time, end_time,"%Y.%m.%d.%H.%M.%S.%f")
-        read_fft_injection_from_files(filtered_files, extension,dtime)
+def main():
+    if len(sys.argv) > 1 and sys.argv[1].endswith(".toml"):
+        config_file = sys.argv[1]
+        app = QApplication(sys.argv)
+        gui = CombineInjectionGUI()
+        gui.config_file = config_file
+        gui.load_parameters()
         
-    elif mode == "get_full_spec":
-        if len(sys.argv) != 7:
-            print("Usage: combine_injection get_full_spec <injection_list_path>  <base_path> <max_workers> <frameID_offset> <frameID_range>")
-            sys.exit(1)
-    
-        injection_list_path = sys.argv[2]
-        base_path = sys.argv[3]
-        max_workers = int(sys.argv[4])
-        frameID_offset = int(sys.argv[5])
-        frameID_range = int(sys.argv[6])        
-        injections = read_injection_list(injection_list_path)
-        
-        process_injections_concurrently(injection_list_path, injections, base_path, process_injection, max_workers, frameID_offset, frameID_range)
-        
-    elif mode == "convert_npz":
-        if len(sys.argv) != 5:
-            print("Usage: combine_injection convert_npz <*******.iq.tdms.bin_fre> <*******.iq.tdms.bin_time> <*******.iq.tdms.bin_amp>")
-            sys.exit(1)
-        
-        start_time = time.time()
-        bin_fre_path  = sys.argv[2]
-        bin_time_path = sys.argv[3]
-        bin_amp_path  = sys.argv[4]
-        bin_npz_path  = bin_fre_path.replace(".bin_fre", ".npz")
-        # Load data from the binary files
-        #print("loading data...")
-        fre  = np.fromfile(bin_fre_path, dtype=np.float64)
-        time_data = np.fromfile(bin_time_path, dtype=np.float32)
-        amp  = np.fromfile(bin_amp_path, dtype=np.float32)
-        print("saving data into npz file.")
-        np.savez_compressed(bin_npz_path, fre=fre, time=time_data, amp=amp)
-        print(f"Data saved to {bin_npz_path}")
-        end_time = time.time()
-        used_time = end_time - start_time
-        print(f"Time used: {used_time} seconds")
-    elif mode == "combine_tdms":
-        if len(sys.argv) != 9:
-            print("Usage: combine_injection  combine_tdms <file_dir> <file_start> <file_stop> <average_number> <fre_min> <fre_range>  <date_start>")
-            sys.exit(1)
-        fir_dir       =       sys.argv[2]
-        file_start    =   int(sys.argv[3])
-        file_stop     =   int(sys.argv[4])
-        average_number=   int(sys.argv[5])
-        fre_min       = float(sys.argv[6])
-        fre_range     = float(sys.argv[7])
-        date_start    =       sys.argv[8]
-        combine_tdms(fir_dir, file_start, file_stop, average_number, fre_min, fre_range, date_start)
+        #a1gui.start_program()
+        gui.show()
+        sys.exit(app.exec_())
     else:
-        print(f"Invalid mode: {mode}")
-        sys.exit(1)
-        
-if __name__ == "__main__":    
-    main()
+        app = QApplication(sys.argv)
+        gui = CombineInjectionGUI()
+        gui.show()
+        sys.exit(app.exec_())

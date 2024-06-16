@@ -8,7 +8,11 @@ import paramiko
 import sys
 import glob
 import datetime
+<<<<<<< HEAD
 from ROOT import TFile, TCanvas, TH2F, TDatime, gApplication, gStyle, gPad, TQObject
+=======
+from ROOT import TFile, TCanvas, TH2F, TDatime, gApplication, gStyle, gPad
+>>>>>>> add gui successfully!
 import numpy as np
 import re
 import concurrent.futures
@@ -29,8 +33,15 @@ def filter_files_by_time(directory, prefix, extension, start_time_str, end_time_
     :param time_format: The datetime format used in the filenames.
     :return: A list of file paths that fall within the specified time range.
     """
+<<<<<<< HEAD
     start_time = datetime.datetime.strptime(start_time_str, time_format)
     end_time   = datetime.datetime.strptime(end_time_str,   time_format)
+=======
+    #print("chenrj filter_files_by_time ..."," start_time_str ",start_time_str," end_time_str ",end_time_str)
+    start_time = datetime.datetime.strptime(start_time_str, time_format)
+    end_time   = datetime.datetime.strptime(end_time_str,   time_format)
+    #print("chenrj filter_files_by_time ..."," start_time ",start_time," end_time ",end_time)
+>>>>>>> add gui successfully!
     # Find all ROOT files in the specified directory
     #root_files = glob.glob(os.path.join(directory, extension))
     root_files = sorted(glob.glob(os.path.join(directory, extension)))
@@ -213,6 +224,10 @@ def load_data_from_single_file(file_path, frameID_start, frameID_stop):
     # This assumes that each frame corresponds to a row in the amp array and an element in the time array
     adjusted_time = time[frameID_start:frameID_stop]
     adjusted_amp = amp[frameID_start:frameID_stop, :]
+<<<<<<< HEAD
+=======
+    #print("chenrj adjusted_time ",adjusted_time)
+>>>>>>> add gui successfully!
     #for i in range(0,len(adjusted_time)):
     #    print(" adjusted_time i= ",i,adjusted_time[i]," adjusted_amp =",adjusted_amp[i][0])
     return fre, adjusted_time, adjusted_amp
@@ -227,8 +242,15 @@ def load_data_from_current_files_to_next_file(file_path, next_file_path, frameID
     bin_amp_path = file_path.replace(".root", ".bin_amp")
     
     # Load data from the current file
+<<<<<<< HEAD
     fre, time_current, amp_current = load_data_from_single_file(file_path, frameID_start, min(frameID_stop, 4095))
     
+=======
+    #print("chenrj min(frameID_stop, 4096)", min(frameID_stop, 4096))
+    fre, time_current, amp_current = load_data_from_single_file(file_path, frameID_start, min(frameID_stop, 4095))
+    
+    #print("chenrj time_current ",time_current)
+>>>>>>> add gui successfully!
     # Initialize combined arrays with data from the current file
     combined_time = time_current
     combined_amp = amp_current
@@ -247,6 +269,10 @@ def load_data_from_current_files_to_next_file(file_path, next_file_path, frameID
         # Combine the current and next file data
         combined_time = np.concatenate((combined_time, time_next))
         combined_amp = np.concatenate((combined_amp, amp_next))
+<<<<<<< HEAD
+=======
+        #print("chenrj load_data_from_current_files_to_next_file completed.")
+>>>>>>> add gui successfully!
         return fre, combined_time, combined_amp
 
 def load_data_from_previous_files_to_current_file(previous_file_path, file_path, frameID_start, frameID_stop):
@@ -260,6 +286,11 @@ def load_data_from_previous_files_to_current_file(previous_file_path, file_path,
 
     # Load data from the current file
     fre, time_current, amp_current = load_data_from_single_file(file_path, 0, frameID_stop)
+<<<<<<< HEAD
+=======
+    #print("chenrj frameID_stop = ", frameID_stop)
+    #print("chenrj time_current = ", time_current)
+>>>>>>> add gui successfully!
     
     # If frameID_stop exceeds the range, load data from the next file
     if frameID_start <0:
@@ -267,6 +298,11 @@ def load_data_from_previous_files_to_current_file(previous_file_path, file_path,
         # Calculate the new frame indices for the next file
         previous_start_frame = frameID_start + 4096
         previous_end_frame = 4096
+<<<<<<< HEAD
+=======
+        #print("chenrj previous_start_frame=",previous_start_frame)
+        #print("chenrj previous_end_frame = ", previous_end_frame)
+>>>>>>> add gui successfully!
         # Load data from the previous file
         _, time_previous, amp_previous = load_data_from_single_file(previous_file_path, previous_start_frame, previous_end_frame)
         
@@ -274,9 +310,19 @@ def load_data_from_previous_files_to_current_file(previous_file_path, file_path,
         time_max = max(time_previous)
         combined_time = time_previous - time_max
         combined_amp = amp_previous
+<<<<<<< HEAD
         # Combine the current and next file data
         combined_time = np.concatenate((combined_time, time_current))
         combined_amp = np.concatenate((combined_amp, amp_current))
+=======
+        #print("chenrj combined_time ",combined_time)
+        #print("chenrj time_current  ",time_current)
+        # Combine the current and next file data
+        combined_time = np.concatenate((combined_time, time_current))
+        combined_amp = np.concatenate((combined_amp, amp_current))
+        #print("chenrj combined_time ",combined_time)
+        #print("chenrj load_data_from_previous_files_to_current_file completed.")
+>>>>>>> add gui successfully!
         return fre, combined_time, combined_amp
     
 
@@ -312,12 +358,22 @@ def adjust_and_load_frames(file_path, frameID, frameID_start, frameID_stop):
     
     # Initialize lists to hold combined data across files
     combined_fre, combined_time, combined_amp = [], [], []
+<<<<<<< HEAD
+=======
+    #print("chenrj frameID_start = ",frameID_start)
+    #print("chenrj frameID_stop = ",frameID_stop)
+>>>>>>> add gui successfully!
     # Check and handle the case when frameID_stop exceeds the current file's range
     if frameID_stop >= 4096:
         next_file_path = get_adjacent_file_path(file_path, 1)  # Get the path for the next file
         # Load data from the current file (frameID_start to 4095) and the next file (0 to frameID_stop - 4096)
         # This is a placeholder for the actual data loading logic, which depends on your file format and data structure
         # Example:
+<<<<<<< HEAD
+=======
+        #print("chenrj file_path ",file_path)
+        #print("chenrj next_file_path ",next_file_path)
+>>>>>>> add gui successfully!
         combined_fre, combined_time, combined_amp = load_data_from_current_files_to_next_file(file_path, next_file_path, frameID_start, frameID_stop)
         
         # Check and handle the case when frameID_start is less than or equal to 0
@@ -326,13 +382,23 @@ def adjust_and_load_frames(file_path, frameID, frameID_start, frameID_stop):
         # Load data from the previous file (4096 + frameID_start to 4095) and the current file (0 to frameID_stop)
         # This is a placeholder for the actual data loading logic
         # Example:
+<<<<<<< HEAD
         combined_fre, combined_time, combined_amp = load_data_from_previous_files_to_current_file(previous_file_path, file_path, frameID_start, frameID_stop)
+=======
+        #print("chenrj previous_file_path = ",previous_file_path)
+        combined_fre, combined_time, combined_amp = load_data_from_previous_files_to_current_file(previous_file_path, file_path, frameID_start, frameID_stop)
+        #print("chenrj combined_time = ",combined_time)
+>>>>>>> add gui successfully!
         
     else:
         # Load data normally from the current file if no adjustments are needed
         # This is a placeholder for your data loading logic when reading from a single file
         # Example:
         combined_fre, combined_time, combined_amp = load_data_from_single_file(file_path, frameID_start, frameID_stop)
+<<<<<<< HEAD
+=======
+        #print("chenrj combined_time = ",combined_time)
+>>>>>>> add gui successfully!
         
     return combined_fre, combined_time, combined_amp
     
@@ -391,10 +457,16 @@ def check_root_data_files_exist(injection_list_path, injection_name):
     full_root_path = injection_name+ "_full.root"
     #print("full_root_path ",full_root_path)
     # Check if "_full.root" files exist
+<<<<<<< HEAD
     
     if os.path.exists(full_root_path) or (os.path.exists(injection_full_list_path) and full_root_path in open(injection_full_list_path).read()):
         print("The data files has been processed:")
         print(full_root_path)
+=======
+    if os.path.exists(full_root_path) or (os.path.exists(injection_full_list_path) and full_root_path in open(injection_full_list_path).read()):
+        #print("The data files has been processed:")
+        #print(full_root_path)
+>>>>>>> add gui successfully!
         if os.path.exists(injection_full_list_path):
             if full_root_path not in open(injection_full_list_path).read():
                 with open(injection_full_list_path, "a") as file:
@@ -422,7 +494,10 @@ def create_and_fill_TH2F(injection_list_path, injection_name, file_path, frameID
             freBinWidth = (freMax - freMin) / (nSpecBins - 1)
             #timeBinWidth = (timeMax - timeMin) / (nTimeBins - 1)
             #timeBinWidth = (time[1] - time[0])
+<<<<<<< HEAD
             
+=======
+>>>>>>> add gui successfully!
             timeBinWidth = 1./20000000*262144
             
             # Create the TH2F histogram
@@ -443,6 +518,10 @@ def create_and_fill_TH2F(injection_list_path, injection_name, file_path, frameID
                 for i in range(len(fre)):
                     y = fHist0_.GetYaxis().GetBinCenter(j)
                     fHist0_.Fill(fre[i]/1000., y, amp[j][i])
+<<<<<<< HEAD
+=======
+            #print("chenrj injection_list_path = ",injection_list_path)        
+>>>>>>> add gui successfully!
             name = injection_name + "_full.root"
             f = TFile(name,"recreate")
             fHist0_.Write()
@@ -464,6 +543,7 @@ def process_injection(injection_list_path, injection_data, base_path, frameID_of
     """
     injection_name, file_path, frameID = injection_data
     
+<<<<<<< HEAD
     injection_name_new = injection_name.replace("../data", base_path)
     injection_name_new = injection_name.replace(".root", "")
     print(f"####### Processing {injection_name}, file_path = {file_path}, frameID = {frameID}, {injection_name_new}")
@@ -500,6 +580,14 @@ def process_injections_concurrently(injection_list_path, injections, base_path, 
             executor.shutdown(wait=False)
             # Perform any additional cleanup here if necessary
 
+=======
+    print(f"####### Processing {injection_name}, file_path = {file_path}, frameID = {frameID}")
+    injection_name = injection_name.replace("../data", base_path)
+    injection_name = injection_name.replace(".root", "")
+    
+    # Call the function to create and fill the histogram
+    create_and_fill_TH2F(injection_list_path, injection_name, file_path, frameID, frameID - frameID_offset, frameID - frameID_offset+ frameID_range)
+>>>>>>> add gui successfully!
 
 def convert_to_time_offset(date_start):
     # Convert the date_start string to a datetime object
@@ -513,6 +601,7 @@ def convert_to_time_offset(date_start):
     
     return time_offset
 
+<<<<<<< HEAD
 # Define a class that inherits from TQObject
 class MyQObject(TQObject):
     def __init__(self):
@@ -523,6 +612,10 @@ class MyQObject(TQObject):
 
 
 def combine_tdms(file_dir, file_start, file_stop, average_number, fre_min, fre_range,  date_start, plot_option):
+=======
+            
+def combine_tdms(file_dir, file_start, file_stop, average_number, fre_min, fre_range,  date_start):
+>>>>>>> add gui successfully!
     # Initialize lists to accumulate the filtered data
     accumulated_fre = []
     accumulated_time = []
@@ -615,6 +708,7 @@ def combine_tdms(file_dir, file_start, file_stop, average_number, fre_min, fre_r
         for j in range(num_combined_time_points):
             h_spec_filtered.Fill(combined_time[j], total_fre[i], combined_amp[j, i])
                     
+<<<<<<< HEAD
     
     h_proj_time = h_spec_filtered.ProjectionX()
     # Save the histogram to a ROOT file
@@ -680,6 +774,62 @@ def combine_tdms(file_dir, file_start, file_stop, average_number, fre_min, fre_r
     root_file.Close()
     print(f"Histogram saved in {output_root_file}.")
     
+=======
+    # Set time display format for X-axis
+    h_spec_filtered.GetXaxis().SetTimeDisplay(1)
+    h_spec_filtered.GetXaxis().SetTimeFormat("%Y-%m-%d %H:%M:%S")
+    h_spec_filtered.GetXaxis().SetLabelSize(0.05)
+    h_spec_filtered.GetXaxis().SetTitleSize(0.05)
+    h_spec_filtered.GetXaxis().SetTitle("Date")
+    h_spec_filtered.GetXaxis().SetNdivisions(505)
+    h_spec_filtered.GetYaxis().SetTitle("Frequency [Hz]")
+    h_spec_filtered.GetYaxis().SetLabelSize(0.05)
+    h_spec_filtered.GetYaxis().SetTitleSize(0.05)
+                            
+    # Save the histogram to a ROOT file
+    output_root_file = f"{file_dir}/filtered_spectrum_{file_start}_{file_stop}.root"
+    root_file = TFile(output_root_file, "RECREATE")
+    h_spec_filtered.Write()
+    root_file.Close()
+    print(f"Histogram saved in {output_root_file}.")
+
+    # Create a canvas and draw the histogram
+    c1 = TCanvas("c1", "Filtered Spectrum", 1200, 600)
+    c1.Divide(1, 2)
+    # Adjust margins
+    c1.cd(1).SetTopMargin(0.0)
+    c1.cd(1).SetRightMargin(0.0)
+    c1.cd(2).SetTopMargin(0.0)
+    c1.cd(2).SetRightMargin(0.0)
+    
+    # Draw the 2D histogram
+    c1.cd(1)
+    gStyle.SetOptTitle(0)
+    gStyle.SetOptStat(0)
+    gPad.SetLogz()
+    h_spec_filtered.Draw("COLZ")
+    
+    # Draw the projection on the x-axis
+    c1.cd(2)
+    gStyle.SetOptTitle(0)
+    gStyle.SetOptStat(0)
+    gPad.SetLogy()
+    h_proj_time = h_spec_filtered.ProjectionX()
+    h_proj_time.SetTitle("Projection on Time Axis;Date;Amplitude Sum")
+    h_proj_time.GetXaxis().SetTimeDisplay(1)
+    h_proj_time.GetXaxis().SetTimeFormat("%Y-%m-%d %H:%M:%S")
+    h_proj_time.GetXaxis().SetLabelSize(0.05)
+    h_proj_time.GetXaxis().SetTitleSize(0.05)
+    h_proj_time.GetXaxis().SetNdivisions(505)
+    h_proj_time.GetYaxis().SetLabelSize(0.05)
+    h_proj_time.GetYaxis().SetTitleSize(0.05)
+    h_proj_time.GetYaxis().SetNdivisions(505)
+    h_proj_time.Draw()
+    # Show the canvas
+    c1.Update()
+    c1.Draw()
+    gApplication.Run(True)  # Keep the canvas open for further editing
+>>>>>>> add gui successfully!
     
 class CombineInjectionGUI(QWidget):
     def __init__(self):
@@ -760,8 +910,12 @@ class CombineInjectionGUI(QWidget):
             self.create_param_entry("fre_min")
             self.create_param_entry("fre_range")
             self.create_param_entry("date_start")
+<<<<<<< HEAD
             self.create_param_entry("plot_option")
             
+=======
+        
+>>>>>>> add gui successfully!
     def create_param_entry(self, param_name):
         label = QLabel(f"{param_name}:")
         entry = QLineEdit(self)
@@ -808,13 +962,17 @@ class CombineInjectionGUI(QWidget):
             frameID_range = int(params["frameID_range"])
             injections = read_injection_list(injection_list_path)
             process_injections_concurrently(injection_list_path, injections, base_path, process_injection, max_workers, frameID_offset, frameID_range)
+<<<<<<< HEAD
             
+=======
+>>>>>>> add gui successfully!
         elif mode == "convert_npz":
             bin_fre_path = params["bin_fre_path"]
             bin_time_path = params["bin_time_path"]
             bin_amp_path = params["bin_amp_path"]
             start_time = time.time()
             bin_npz_path = bin_fre_path.replace(".bin_fre", ".npz")
+<<<<<<< HEAD
             bin_spectrum_npz_path = bin_fre_path.replace(".bin_fre", "_spectrum.npz")   
             fre = np.fromfile(bin_fre_path, dtype=np.float64)
             time_data = np.fromfile(bin_time_path, dtype=np.float32)
@@ -830,6 +988,14 @@ class CombineInjectionGUI(QWidget):
             np.savez_compressed(bin_spectrum_npz_path, arr_0=fre, arr_1=amplitude_average)
             print(f"Data saved to {bin_spectrum_npz_path}")
             
+=======
+            fre = np.fromfile(bin_fre_path, dtype=np.float64)
+            time_data = np.fromfile(bin_time_path, dtype=np.float32)
+            amp = np.fromfile(bin_amp_path, dtype=np.float32)
+            print("saving data into npz file.")
+            np.savez_compressed(bin_npz_path, fre=fre, time=time_data, amp=amp)
+            print(f"Data saved to {bin_npz_path}")
+>>>>>>> add gui successfully!
             end_time = time.time()
             used_time = end_time - start_time
             print(f"Time used: {used_time} seconds")
@@ -841,6 +1007,7 @@ class CombineInjectionGUI(QWidget):
             fre_min = float(params["fre_min"])
             fre_range = float(params["fre_range"])
             date_start = params["date_start"]
+<<<<<<< HEAD
             plot_option = params.get("plot_option", False)
             if isinstance(plot_option, str):
                 plot_option = plot_option.lower() == "true"
@@ -872,5 +1039,23 @@ def main():
 
     else:
         # Default: show GUI
+=======
+            combine_tdms(file_dir, file_start, file_stop, average_number, fre_min, fre_range, date_start)
+            
+def main():
+    if len(sys.argv) > 1 and sys.argv[1].endswith(".toml"):
+        config_file = sys.argv[1]
+        app = QApplication(sys.argv)
+        gui = CombineInjectionGUI()
+        gui.config_file = config_file
+        gui.load_parameters()
+        
+        #a1gui.start_program()
+        gui.show()
+        sys.exit(app.exec_())
+    else:
+        app = QApplication(sys.argv)
+        gui = CombineInjectionGUI()
+>>>>>>> add gui successfully!
         gui.show()
         sys.exit(app.exec_())
