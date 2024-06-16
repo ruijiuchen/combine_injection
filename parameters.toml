@@ -1,0 +1,10 @@
+mode = "combine_tdms"
+
+[parameters]
+file_dir = "/lustre/astrum/experiment_data/2024-05_E018/OnlineDataAnalysisSystem/data/iq/IQ_2024-06-12_21-47-54"
+file_start = "23"
+file_stop = "23"
+average_number = "64"
+fre_min = "243730000"
+fre_range = "100000"
+date_start = "2024-06-12 21:47:54"
