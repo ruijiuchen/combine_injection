@@ -8,7 +8,7 @@ import paramiko
 import sys
 import glob
 import datetime
-from ROOT import TFile, TCanvas, TH2F, TDatime, gApplication, gStyle, gPad
+from ROOT import TFile, TCanvas, TH2F, TDatime, gApplication, gStyle, gPad, TQObject
 import numpy as np
 import re
 import concurrent.futures
@@ -503,7 +503,15 @@ def convert_to_time_offset(date_start):
     
     return time_offset
 
-            
+# Define a class that inherits from TQObject
+class MyQObject(TQObject):
+    def __init__(self):
+        super().__init__()
+        
+    def on_close(self):
+        gApplication.Terminate(0)
+
+
 def combine_tdms(file_dir, file_start, file_stop, average_number, fre_min, fre_range,  date_start):
     # Initialize lists to accumulate the filtered data
     accumulated_fre = []
@@ -597,24 +605,10 @@ def combine_tdms(file_dir, file_start, file_stop, average_number, fre_min, fre_r
         for j in range(num_combined_time_points):
             h_spec_filtered.Fill(combined_time[j], total_fre[i], combined_amp[j, i])
                     
-    # Set time display format for X-axis
-    h_spec_filtered.GetXaxis().SetTimeDisplay(1)
-    h_spec_filtered.GetXaxis().SetTimeFormat("%Y-%m-%d %H:%M:%S")
-    h_spec_filtered.GetXaxis().SetLabelSize(0.05)
-    h_spec_filtered.GetXaxis().SetTitleSize(0.05)
-    h_spec_filtered.GetXaxis().SetTitle("Date")
-    h_spec_filtered.GetXaxis().SetNdivisions(505)
-    h_spec_filtered.GetYaxis().SetTitle("Frequency [Hz]")
-    h_spec_filtered.GetYaxis().SetLabelSize(0.05)
-    h_spec_filtered.GetYaxis().SetTitleSize(0.05)
-                            
+    
     # Save the histogram to a ROOT file
     output_root_file = f"{file_dir}/filtered_spectrum_{file_start}_{file_stop}.root"
     root_file = TFile(output_root_file, "RECREATE")
-    h_spec_filtered.Write()
-    root_file.Close()
-    print(f"Histogram saved in {output_root_file}.")
-
     # Create a canvas and draw the histogram
     c1 = TCanvas("c1", "Filtered Spectrum", 1200, 600)
     c1.Divide(1, 2)
@@ -630,6 +624,17 @@ def combine_tdms(file_dir, file_start, file_stop, average_number, fre_min, fre_r
     gStyle.SetOptStat(0)
     gPad.SetLogz()
     h_spec_filtered.Draw("COLZ")
+    # Set time display format for X-axis
+    h_spec_filtered.GetXaxis().SetTimeDisplay(1)
+    h_spec_filtered.GetXaxis().SetTimeFormat("%Y-%m-%d %H:%M:%S")
+    h_spec_filtered.GetXaxis().SetLabelSize(0.05)
+    h_spec_filtered.GetXaxis().SetTitleSize(0.05)
+    h_spec_filtered.GetXaxis().SetTitle("Date")
+    h_spec_filtered.GetXaxis().SetNdivisions(505)
+    h_spec_filtered.GetYaxis().SetTitle("Frequency [Hz]")
+    h_spec_filtered.GetYaxis().SetLabelSize(0.05)
+    h_spec_filtered.GetYaxis().SetTitleSize(0.05)
+                            
     
     # Draw the projection on the x-axis
     c1.cd(2)
@@ -648,9 +653,26 @@ def combine_tdms(file_dir, file_start, file_stop, average_number, fre_min, fre_r
     h_proj_time.GetYaxis().SetNdivisions(505)
     h_proj_time.Draw()
     # Show the canvas
+    
     c1.Update()
     c1.Draw()
+    
+    # Instantiate the custom TQObject
+    #my_qobject = MyQObject()
+    #TQObject.Connect(c1, "Closed()", "MyQObject", my_qobject, "on_close()")
+
+    my_qobject = MyQObject()
+    TQObject.Connect(c1, "Closed()", "MyQObject", my_qobject, "on_close()")
+    
+    #c1.Connect("Closed()", "MyQObject", my_qobject, "on_close()")
+                        
     gApplication.Run(True)  # Keep the canvas open for further editing
+    c1.Write()
+    h_spec_filtered.Write()
+    h_proj_time.Write()
+    root_file.Close()
+    print(f"Histogram saved in {output_root_file}.")
+    
     
 class CombineInjectionGUI(QWidget):
     def __init__(self):

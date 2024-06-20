@@ -1,2 +1,0 @@
-[console_scripts]
-combine_injection = combine_injection.__main__:main
